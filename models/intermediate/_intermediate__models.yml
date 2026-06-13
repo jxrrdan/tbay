@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: int_investors__enriched
+    description: >
+      Investor flattened with entity, owning partner and (optional) RM. Every
+      join is many-to-one, so grain remains one row per investor.
+    columns:
+      - name: investor_id
+        data_tests: [unique, not_null]
+      - name: partner_id
+        description: Authoritative partner for the investor, via its entity.
+
+  - name: int_relationship_managers__enriched
+    description: "RM flattened with owning partner. Grain: one row per RM."
+    columns:
+      - name: rm_id
+        data_tests: [unique, not_null]
+
+  - name: int_tickets__requester_resolution
+    description: >
+      Resolves each ticket's requester to investor / relationship_manager /
+      unknown and derives an authoritative partner_id. Email lookups are
+      deduplicated to one row per email, so grain stays one row per ticket.
+    columns:
+      - name: ticket_id
+        data_tests: [unique, not_null]
+      - name: requester_type
+        data_tests:
+          - accepted_values:
+              values: ['investor', 'relationship_manager', 'unknown']
+      - name: partner_attribution_method
+        description: How partner_id was derived, in trust order.
+        data_tests:
+          - accepted_values:
+              values: ['investor_email_match', 'rm_email_match', 'partner_label_fallback', 'unresolved']

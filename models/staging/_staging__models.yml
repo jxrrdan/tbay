@@ -1,0 +1,121 @@
+version: 2
+
+models:
+  - name: stg_platform__partners
+    description: "Cleaned partner organisations. Grain: one row per partner."
+    columns:
+      - name: partner_id
+        description: Unique partner identifier.
+        data_tests: [unique, not_null]
+      - name: partner_type
+        description: wealth_manager | fund_manager | family_office.
+        data_tests:
+          - accepted_values:
+              values: ['wealth_manager', 'fund_manager', 'family_office']
+              config:
+                severity: warn
+
+  - name: stg_platform__relationship_managers
+    description: "Cleaned relationship managers. Grain: one row per RM."
+    columns:
+      - name: rm_id
+        description: Unique RM identifier.
+        data_tests: [unique, not_null]
+      - name: partner_id
+        description: Owning partner.
+        data_tests:
+          - relationships:
+              to: ref('stg_platform__partners')
+              field: partner_id
+              config:
+                severity: warn
+      - name: rm_email
+        description: Normalised (lower/trim) work email; join surface for ticket resolution.
+
+  - name: stg_platform__entities
+    description: "Cleaned investing entities. Grain: one row per entity."
+    columns:
+      - name: entity_id
+        description: Unique entity identifier.
+        data_tests: [unique, not_null]
+      - name: partner_id
+        data_tests:
+          - relationships:
+              to: ref('stg_platform__partners')
+              field: partner_id
+              config:
+                severity: warn
+      - name: entity_type
+        data_tests:
+          - accepted_values:
+              values: ['individual', 'corporate', 'trust', 'pension_fund']
+              config:
+                severity: warn
+      - name: kyc_status
+        data_tests:
+          - accepted_values:
+              values: ['approved', 'pending', 'expired', 'rejected']
+              config:
+                severity: warn
+
+  - name: stg_platform__investors
+    description: "Cleaned investors. Grain: one row per investor."
+    columns:
+      - name: investor_id
+        description: Unique investor identifier.
+        data_tests: [unique, not_null]
+      - name: email
+        description: Normalised registered email; primary join key for requester resolution.
+        data_tests: [not_null]
+      - name: entity_id
+        description: Owning entity.
+        data_tests:
+          - relationships:
+              to: ref('stg_platform__entities')
+              field: entity_id
+              config:
+                severity: warn
+      - name: relationship_manager_id
+        description: Owning RM; null (~41%) when the investor self-manages.
+
+  - name: stg_platform__fund_closes
+    description: "Cleaned fund closes. Grain: one row per close."
+    columns:
+      - name: close_id
+        description: Unique close identifier.
+        data_tests: [unique, not_null]
+      - name: partner_id
+        data_tests:
+          - relationships:
+              to: ref('stg_platform__partners')
+              field: partner_id
+              config:
+                severity: warn
+      - name: close_status
+        data_tests:
+          - accepted_values:
+              values: ['upcoming', 'completed', 'cancelled']
+              config:
+                severity: warn
+
+  - name: stg_freshdesk__tickets
+    description: "Cleaned support tickets. Grain: one row per ticket."
+    columns:
+      - name: ticket_id
+        description: Freshdesk reference number.
+        data_tests: [unique, not_null]
+      - name: requester_email
+        description: Normalised email of whoever raised the ticket (investor or RM).
+        data_tests: [not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['open', 'pending', 'resolved', 'closed']
+              config:
+                severity: warn
+      - name: priority
+        data_tests:
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'urgent']
+              config:
+                severity: warn

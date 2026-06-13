@@ -1,0 +1,10 @@
+# Local, zero-config profile. DuckDB writes to a single file in the project
+# root, so `dbt build` works on a fresh clone with no warehouse credentials.
+# Point DBT_PROFILES_DIR at this folder, or copy into ~/.dbt/profiles.yml.
+titanbay_is:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: titanbay_is.duckdb
+      threads: 4

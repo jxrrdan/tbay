@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: dim_partner
+    description: "Partner dimension. Grain: one row per partner."
+    columns:
+      - name: partner_id
+        data_tests: [unique, not_null]
+
+  - name: dim_relationship_manager
+    description: "RM dimension with partner. Grain: one row per RM."
+    columns:
+      - name: rm_id
+        data_tests: [unique, not_null]
+
+  - name: dim_entity
+    description: "Entity dimension with partner. Grain: one row per entity."
+    columns:
+      - name: entity_id
+        data_tests: [unique, not_null]
+
+  - name: dim_investor
+    description: "Investor dimension with entity, partner and RM. Grain: one per investor."
+    columns:
+      - name: investor_id
+        data_tests: [unique, not_null]
+      - name: email
+        data_tests: [not_null]
+
+  - name: dim_fund_close
+    description: "Fund-close dimension with partner and calendar helpers. Grain: one per close."
+    columns:
+      - name: close_id
+        data_tests: [unique, not_null]
+
+  - name: fct_tickets
+    description: >
+      Ticket fact, one row per ticket, with requester resolved to a person type
+      and an authoritative partner. Spine for all ticket analysis.
+    columns:
+      - name: ticket_id
+        data_tests: [unique, not_null]
+      - name: requester_type
+        data_tests:
+          - accepted_values:
+              values: ['investor', 'relationship_manager', 'unknown']
+      - name: investor_id
+        description: FK to dim_investor; null unless requester resolved to an investor.
+        data_tests:
+          - relationships:
+              to: ref('dim_investor')
+              field: investor_id
+      - name: partner_id
+        description: FK to dim_partner; null when unresolved.
+        data_tests:
+          - relationships:
+              to: ref('dim_partner')
+              field: partner_id
+              config:
+                severity: warn
+
+  - name: fct_ticket_tags
+    description: "Ticket-tag bridge. Grain: one row per ticket x tag."
+
+  - name: mart_investor_ticket_summary
+    description: >
+      Per-investor ticket behaviour (Q1: who raises the most and what patterns).
+      Includes investors with zero tickets. Grain: one row per investor.
+    columns:
+      - name: investor_id
+        data_tests: [unique, not_null]
+
+  - name: mart_is_pressure_weekly
+    description: >
+      Weekly team-wide ticket load alongside fund-close activity (Q2: anticipate
+      pressure). Grain: one row per ISO week.
+    columns:
+      - name: week_start
+        data_tests: [unique, not_null]
+
+  - name: mart_close_ticket_pressure
+    description: >
+      Tickets attributed to each fund close within a +/- window of its scheduled
+      date (Q2: forecast load per close). Grain: one row per close.
+    columns:
+      - name: close_id
+        data_tests: [unique, not_null]
