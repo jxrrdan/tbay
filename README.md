@@ -198,13 +198,15 @@ support load) clusters around closes. Two complementary models:
 ## 8. How to run
 
 ```bash
-pip install -r requirements.txt          # dbt-core + dbt-duckdb
+pip install -r requirements.txt          # dbt-core + dbt-duckdb, nothing else
 
 # place the six CSVs in seeds/ (filenames matching the table names), then:
 export DBT_PROFILES_DIR=$(pwd)
-dbt deps
 dbt build                                # seeds → models → tests, end to end
 ```
+
+The project has **no external package dependencies** (only built-in generic
+tests are used), so it runs with no network access beyond the pip install.
 
 Everything materialises into a local `titanbay_is.duckdb` file — no warehouse
 credentials needed. The SQL is standard dbt and ports to BigQuery with only the
