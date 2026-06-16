@@ -273,7 +273,35 @@ profile changed.
 
 ---
 
-## 10. What I'd build next
+## 10. Data dictionary discrepancies
+
+The PDF data dictionary is accurate on structure (column names, types, row counts,
+null rates, enumerated values) but has two places where the description doesn't
+match the actual data:
+
+**`close_number` is not reliably chronological.**
+The dictionary defines it as "Sequential close number within the fund (1 = first
+close, 2 = second, etc.)", implying it is ordered by `scheduled_close_date`. In
+practice, **7 funds** have `close_number` values that don't match date order — for
+example, Stirling Private Equity Fund 2023 has close 1 dated 2026-11-02 but close
+2 dated 2026-03-23. Any model that treats `close_number` as a chronological rank
+will silently produce wrong results for those funds. We use `scheduled_close_date`
+as the authoritative ordering key throughout and treat `close_number` as a label
+only (see §6).
+
+**The `freshdesk_tickets` description omits the internal requester class.**
+The dictionary says tickets are raised by "investors or their representatives."
+This frames the requester population as a two-way split (investor / RM). In the
+actual data, **100 tickets (5%)** come from `@titanbay.com` and `@titanbay.co.uk`
+addresses — Titanbay's own staff. These are a distinct third class with different
+handling requirements: they can't be attributed to an investor or partner via email
+alone, and they should probably be excluded from investor-behaviour reporting
+altogether. Without reading the data dictionary sceptically, they would fall into
+`unknown` and silently inflate that bucket.
+
+---
+
+## 11. What I'd build next
 
 - **Partner-level pressure mart** — per-partner cut of the weekly series to
   see which partners drive the most load.
@@ -294,7 +322,7 @@ profile changed.
 
 ---
 
-## 11. How I worked with AI tools
+## 12. How I worked with AI tools
 
 This model was built collaboratively with an AI coding assistant (Claude). I used
 it to scaffold the dbt project and boilerplate (staging models, YAML, tests) so I
@@ -308,7 +336,7 @@ and documented decisions above are the deliberate choices I made throughout.
 
 ---
 
-## 12. Reflection — the ideal long-term fix
+## 13. Reflection — the ideal long-term fix
 
 The root problem is that **Freshdesk has no reliable foreign key back to the
 platform** — tickets are stitched by email and patched with a manual,
