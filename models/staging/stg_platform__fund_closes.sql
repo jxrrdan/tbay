@@ -13,5 +13,5 @@ select
     cast(close_number as integer)       as close_number,
     cast(scheduled_close_date as date)  as scheduled_close_date,
     lower(trim(close_status))           as close_status,
-    cast(total_committed_aum as bigint) as total_committed_aum_gbp
+    {{ cast_int64('total_committed_aum') }} as total_committed_aum_gbp
 from source

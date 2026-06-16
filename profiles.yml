@@ -1,6 +1,7 @@
-# Local, zero-config profile. DuckDB writes to a single file in the project
-# root, so `dbt build` works on a fresh clone with no warehouse credentials.
-# Point DBT_PROFILES_DIR at this folder, or copy into ~/.dbt/profiles.yml.
+# ---------------------------------------------------------------------------
+# DuckDB — zero-config, local. No credentials needed.
+# Run: export DBT_PROFILES_DIR=$(pwd) && dbt build
+# ---------------------------------------------------------------------------
 titanbay_is:
   target: dev
   outputs:
@@ -8,3 +9,16 @@ titanbay_is:
       type: duckdb
       path: titanbay_is.duckdb
       threads: 4
+
+# ---------------------------------------------------------------------------
+# BigQuery — swap `target: dev` above to `target: bigquery` and fill in your
+# GCP project/dataset. Seeds are uploaded automatically by `dbt seed`.
+#
+#   bigquery:
+#     type: bigquery
+#     method: oauth                # or service-account
+#     project: your-gcp-project
+#     dataset: titanbay_is
+#     location: EU                 # or US
+#     threads: 4
+# ---------------------------------------------------------------------------

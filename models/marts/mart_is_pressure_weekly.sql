@@ -17,11 +17,11 @@ with tickets_created as (
 
 tickets_resolved as (
     select
-        date_trunc('week', resolved_at)                       as week_start,
+        {{ week_start('resolved_at') }}                       as week_start,
         count(*)                                              as tickets_resolved
     from {{ ref('fct_tickets') }}
     where resolved_at is not null
-    group by date_trunc('week', resolved_at)
+    group by {{ week_start('resolved_at') }}
 ),
 
 closes as (

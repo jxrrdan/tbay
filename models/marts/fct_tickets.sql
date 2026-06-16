@@ -31,15 +31,15 @@ select
     -- Timing
     created_at,
     resolved_at,
-    cast(created_at as date)                   as created_date,
-    date_trunc('week',  created_at)            as created_week,
-    date_trunc('month', created_at)            as created_month,
+    cast(created_at as date)              as created_date,
+    {{ week_start('created_at') }}        as created_week,
+    {{ month_start('created_at') }}       as created_month,
 
     -- Measures
-    (resolved_at is not null)                  as is_resolved,
-    (status in ('open', 'pending'))            as is_open,
+    (resolved_at is not null)             as is_resolved,
+    (status in ('open', 'pending'))       as is_open,
     case
         when resolved_at is not null
-        then (epoch(resolved_at) - epoch(created_at)) / 3600.0
-    end                                         as resolution_hours
+        then {{ datediff_hours('created_at', 'resolved_at') }}
+    end                                   as resolution_hours
 from resolved

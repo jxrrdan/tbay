@@ -28,7 +28,7 @@ agg as (
         count(*) filter (where priority = 'urgent')           as urgent_count,
         count(*) filter (where priority = 'high')             as high_count,
         avg(resolution_hours)                                 as avg_resolution_hours,
-        median(resolution_hours)                              as median_resolution_hours,
+        {{ approx_median('resolution_hours') }}               as median_resolution_hours,
         min(created_at)                                       as first_ticket_at,
         max(created_at)                                       as last_ticket_at
     from investor_tickets
