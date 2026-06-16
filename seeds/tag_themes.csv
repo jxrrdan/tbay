@@ -1,0 +1,11 @@
+tag,theme,theme_label,theme_sort_order
+kyc,identity_and_compliance,Identity & Compliance,1
+onboarding,identity_and_compliance,Identity & Compliance,1
+documents,documents_and_signatures,Documents & Signatures,2
+e-signature,documents_and_signatures,Documents & Signatures,2
+commitment,investment_process,Investment Process,3
+fund-info,investment_process,Investment Process,3
+payment,investment_process,Investment Process,3
+account,platform_and_access,Platform & Access,4
+portal,platform_and_access,Platform & Access,4
+access,platform_and_access,Platform & Access,4

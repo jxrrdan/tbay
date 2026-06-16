@@ -80,6 +80,35 @@ models:
       - name: week_start
         data_tests: [unique, not_null]
 
+  - name: mart_attribution_health
+    description: >
+      Weekly data-quality time series tracking partner attribution rates.
+      Monitor unresolved_rate_pct and fallback_rate_pct over time as KPIs.
+      Grain: one row per ISO week.
+    columns:
+      - name: week_start
+        data_tests: [unique, not_null]
+
+  - name: mart_partner_pressure_weekly
+    description: >
+      Per-partner weekly ticket load alongside fund-close activity.
+      Grain: one row per (partner, ISO week).
+
+  - name: mart_staffing_forecast
+    description: >
+      Forward-looking ticket load estimate for upcoming closes, based on
+      historical avg tickets-per-close per partner. no_historical_data flags
+      closes from new partners. Grain: one row per upcoming close.
+    columns:
+      - name: close_id
+        data_tests: [unique, not_null]
+
+  - name: mart_theme_ticket_summary
+    description: >
+      Board-level rollup mapping raw tags to 4 investment-lifecycle themes.
+      One ticket counted once per theme it touches. Grain: one row per
+      (theme, partner_id, week_start, requester_type).
+
   - name: mart_close_ticket_pressure
     description: >
       Tickets attributed to each fund close within a +/- window of its scheduled

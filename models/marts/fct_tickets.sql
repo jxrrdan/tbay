@@ -1,8 +1,31 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key='ticket_id',
+        incremental_strategy='merge',
+        on_schema_change='sync_all_columns'
+    )
+}}
 -- Ticket fact — one row per support ticket, with the requester resolved to a
 -- person type and an authoritative partner. This is the spine an analyst joins
 -- the dimensions onto. Grain: one row per ticket.
+--
+-- Incremental strategy: merge on ticket_id with a 3-day lookback window.
+-- The lookback catches tickets whose status or resolved_at changed after
+-- creation (e.g. open → resolved). For a full re-resolution after upstream
+-- dimension changes (new investors / RMs), run with --full-refresh.
+--
+-- Note: staging and intermediate models are views, so the incremental filter
+-- here is the only pushdown. For large volumes, materialise
+-- int_tickets__requester_resolution as a table with its own incremental config.
 with resolved as (
     select * from {{ ref('int_tickets__requester_resolution') }}
+    {% if is_incremental() %}
+    where cast(created_at as date) >= (
+        select {{ date_sub_days('cast(max(created_at) as date)', 3) }}
+        from {{ this }}
+    )
+    {% endif %}
 )
 
 select
@@ -13,12 +36,11 @@ select
     partner_id,                     -- FK -> dim_partner (resolved, may be null)
 
     -- Requester classification
-    requester_type,                 -- investor | relationship_manager | unknown
+    requester_type,                 -- investor | relationship_manager | internal | unknown
     requester_email,
     requester_name,
     partner_attribution_method,
     requester_matched_both,
-    -- Surfaces duplicate-email ambiguity that was collapsed upstream
     (coalesce(investor_match_count, 0) > 1) as investor_email_is_ambiguous,
     (coalesce(rm_match_count, 0) > 1)       as rm_email_is_ambiguous,
 
