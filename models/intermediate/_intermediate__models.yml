@@ -26,9 +26,14 @@ models:
       - name: ticket_id
         data_tests: [unique, not_null]
       - name: requester_type
+        description: >
+          investor | relationship_manager | internal | unknown.
+          'internal' = @titanbay.com / @titanbay.co.uk addresses (IS team,
+          ops, internal testing). 'unknown' = consumer email not found on
+          the platform (80 tickets in current data).
         data_tests:
           - accepted_values:
-              values: ['investor', 'relationship_manager', 'unknown']
+              values: ['investor', 'relationship_manager', 'internal', 'unknown']
       - name: partner_attribution_method
         description: How partner_id was derived, in trust order.
         data_tests:

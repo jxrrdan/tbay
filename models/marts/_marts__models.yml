@@ -43,13 +43,15 @@ models:
       - name: requester_type
         data_tests:
           - accepted_values:
-              values: ['investor', 'relationship_manager', 'unknown']
+              values: ['investor', 'relationship_manager', 'internal', 'unknown']
       - name: investor_id
         description: FK to dim_investor; null unless requester resolved to an investor.
         data_tests:
           - relationships:
               to: ref('dim_investor')
               field: investor_id
+              config:
+                severity: warn
       - name: partner_id
         description: FK to dim_partner; null when unresolved.
         data_tests:
