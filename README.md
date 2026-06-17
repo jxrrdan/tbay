@@ -301,24 +301,45 @@ altogether. Without reading the data dictionary sceptically, they would fall int
 
 ---
 
-## 11. What I'd build next
+## 11. What was built (beyond the initial brief)
 
-- **Partner-level pressure mart** — per-partner cut of the weekly series to
-  see which partners drive the most load.
-- **Tag taxonomy / theme rollup** — map the 10 raw tags to 3–4 investment-
-  lifecycle themes (identity/KYC, documents/signature, portal/access,
-  commitment/payment) for cleaner "what do investors struggle with" reporting.
-- **Attribution rate monitoring** — a KPI exposure tracking the `unresolved`
-  rate (currently 6.7%) and the `partner_label_fallback` rate (2.4%) over time
-  as data-health metrics.
-- **Incremental `fct_tickets`** keyed on `ticket_id` once volume grows (the model
-  is already deterministic, so it's a config change).
-- **Forward staffing forecast** — regress weekly tickets on committed AUM / close
-  count from `mart_is_pressure_weekly` to produce a quantified projection of
-  future IS load from the known close calendar.
-- **Internal ticket investigation** — work with the IS team to understand who the
-  100 `@titanbay` tickets really belong to so they can be attributed to the
-  correct investor and partner.
+The two core questions (investor behaviour, pressure anticipation) were answered
+by `mart_investor_ticket_summary` and the `mart_is_pressure_weekly` /
+`mart_close_ticket_pressure` pair. Beyond that, five additional models were built
+to make the output production-grade:
+
+- **`mart_partner_pressure_weekly`** — per-partner weekly ticket load alongside
+  close activity. Reveals which partner firm is driving pressure in any given week,
+  not just the team total.
+- **`mart_theme_ticket_summary`** — maps the 10 raw Freshdesk tags to 4 investment-
+  lifecycle themes (Identity & Compliance, Documents & Signatures, Investment
+  Process, Platform & Access) for board-level reporting. Counts distinct tickets
+  per theme, not per tag, so a ticket touching two themes is counted once in each.
+- **`mart_attribution_health`** — weekly data-quality KPI series tracking
+  `unresolved_rate_pct` and `fallback_rate_pct` over time. Provides an early
+  warning if the partner synonym map stops covering new label variants.
+- **`mart_staffing_forecast`** — forward load estimate per upcoming close, based
+  on each partner's historical avg tickets per close. Flags new partners
+  (`no_historical_data`) and low-sample estimates (`low_sample_warning` for
+  fewer than 3 completed closes).
+- **Incremental `fct_tickets`** — the fact table uses a merge strategy on
+  `ticket_id` with a 3-day lookback window, so it is safe for production
+  incremental runs from day one without a full rebuild.
+- **Cross-adapter macros** (`macros/cross_db_utils.sql`) — all date arithmetic,
+  median approximation, and array unnesting are dispatched through adapter-aware
+  macros. The project runs on DuckDB locally and on BigQuery in production with
+  only a profile change.
+
+### What remains as genuine future work
+
+- **Internal ticket attribution** — the 100 `@titanbay.com` tickets cannot be
+  attributed to a specific investor or partner from email alone. Working with the
+  IS team to understand the naming pattern (e.g. `jordan.thomas@titanbay.com`
+  raising a ticket named for a different person) could recover this 5% for
+  investor-behaviour analysis.
+- **Stamp platform IDs at ticket creation** — the long-term structural fix
+  described in §13. Until then, all partner attribution carries the ambiguity
+  described in §4.
 
 ---
 
