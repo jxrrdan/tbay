@@ -3,14 +3,16 @@ titanbay_is:
   outputs:
 
     dev:
-      type: duckdb
-      path: titanbay_is.duckdb
-      threads: 4
-
-    bigquery:
       type: bigquery
       method: oauth
       project: your-gcp-project   # replace with your GCP project ID
       dataset: titanbay_is
       location: EU
+      threads: 4
+
+    # Zero-config local alternative — no GCP credentials needed
+    # dbt build --target duckdb
+    duckdb:
+      type: duckdb
+      path: titanbay_is.duckdb
       threads: 4
