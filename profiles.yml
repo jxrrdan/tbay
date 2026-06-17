@@ -1,24 +1,16 @@
-# ---------------------------------------------------------------------------
-# DuckDB — zero-config, local. No credentials needed.
-# Run: export DBT_PROFILES_DIR=$(pwd) && dbt build
-# ---------------------------------------------------------------------------
 titanbay_is:
   target: dev
   outputs:
+
     dev:
       type: duckdb
       path: titanbay_is.duckdb
       threads: 4
 
-# ---------------------------------------------------------------------------
-# BigQuery — swap `target: dev` above to `target: bigquery` and fill in your
-# GCP project/dataset. Seeds are uploaded automatically by `dbt seed`.
-#
-#   bigquery:
-#     type: bigquery
-#     method: oauth                # or service-account
-#     project: your-gcp-project
-#     dataset: titanbay_is
-#     location: EU                 # or US
-#     threads: 4
-# ---------------------------------------------------------------------------
+    bigquery:
+      type: bigquery
+      method: oauth
+      project: your-gcp-project   # replace with your GCP project ID
+      dataset: titanbay_is
+      location: EU
+      threads: 4
