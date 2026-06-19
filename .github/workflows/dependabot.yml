@@ -40,12 +40,6 @@ jobs:
           DBT_PROFILES_DIR: ${{ github.workspace }}
 
       - name: Lint SQL (dbt-templated)
-        run: |
-          sqlfluff lint models/ \
-            --dialect duckdb \
-            --templater dbt \
-            --exclude-rules ST06,ST07 \
-            --warn-unused-ignores
+        run: sqlfluff lint models/
         env:
           DBT_PROFILES_DIR: ${{ github.workspace }}
-          DBT_TARGET: duckdb
