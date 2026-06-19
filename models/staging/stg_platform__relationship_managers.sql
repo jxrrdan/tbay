@@ -8,8 +8,8 @@ with source as (
 select
     rm_id,
     partner_id,
-    trim(name)                          as rm_name,
+    trim(name) as rm_name,
     -- Normalised for joining against ticket requester_email. The raw casing /
     -- whitespace is dropped here so every downstream match uses one form.
-    lower(trim(email))                  as rm_email
+    lower(trim(email)) as rm_email
 from source

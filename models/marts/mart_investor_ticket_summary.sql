@@ -15,22 +15,23 @@ with investors as (
 investor_tickets as (
     select *
     from {{ ref('fct_tickets') }}
-    where requester_type = 'investor'
-      and investor_id is not null
+    where
+        requester_type = 'investor'
+        and investor_id is not null
 ),
 
 agg as (
     select
         investor_id,
-        count(*)                                              as ticket_count,
-        count(*) filter (where is_resolved)                   as resolved_count,
-        count(*) filter (where is_open)                       as open_count,
-        count(*) filter (where priority = 'urgent')           as urgent_count,
-        count(*) filter (where priority = 'high')             as high_count,
-        avg(resolution_hours)                                 as avg_resolution_hours,
+        count(*) as ticket_count,
+        count(*) filter (where is_resolved) as resolved_count,
+        count(*) filter (where is_open) as open_count,
+        count(*) filter (where priority = 'urgent') as urgent_count,
+        count(*) filter (where priority = 'high') as high_count,
+        avg(resolution_hours) as avg_resolution_hours,
         {{ approx_median('resolution_hours') }}               as median_resolution_hours,
-        min(created_at)                                       as first_ticket_at,
-        max(created_at)                                       as last_ticket_at
+        min(created_at) as first_ticket_at,
+        max(created_at) as last_ticket_at
     from investor_tickets
     group by investor_id
 )
@@ -49,11 +50,11 @@ select
     i.partner_type,
     i.is_rm_managed,
 
-    coalesce(a.ticket_count, 0)   as ticket_count,
+    coalesce(a.ticket_count, 0) as ticket_count,
     coalesce(a.resolved_count, 0) as resolved_count,
-    coalesce(a.open_count, 0)     as open_count,
-    coalesce(a.urgent_count, 0)   as urgent_count,
-    coalesce(a.high_count, 0)     as high_count,
+    coalesce(a.open_count, 0) as open_count,
+    coalesce(a.urgent_count, 0) as urgent_count,
+    coalesce(a.high_count, 0) as high_count,
     a.avg_resolution_hours,
     a.median_resolution_hours,
     a.first_ticket_at,

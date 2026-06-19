@@ -10,10 +10,10 @@ select
     user_id,
     -- Normalised email is the primary key for resolving ticket requesters back
     -- to a known investor.
-    lower(trim(email))                  as email,
-    trim(full_name)                     as full_name,
+    lower(trim(email)) as email,
+    trim(full_name) as full_name,
     entity_id,
-    trim(country)                       as country,
-    cast(created_at as timestamp)       as created_at,
+    trim(country) as country,
+    cast(created_at as timestamp) as created_at,
     relationship_manager_id
 from source

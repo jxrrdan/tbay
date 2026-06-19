@@ -61,7 +61,7 @@ select
     week_start,
     month_start,
     requester_type,
-    count(distinct ticket_id)   as ticket_count
+    count(distinct ticket_id) as ticket_count
 from with_calendar
 group by
     theme,

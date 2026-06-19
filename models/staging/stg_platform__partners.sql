@@ -6,6 +6,6 @@ with source as (
 
 select
     partner_id,
-    trim(partner_name)                  as partner_name,
-    lower(trim(partner_type))           as partner_type
+    trim(partner_name) as partner_name,
+    lower(trim(partner_type)) as partner_type
 from source

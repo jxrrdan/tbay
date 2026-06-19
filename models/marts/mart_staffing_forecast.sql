@@ -29,11 +29,11 @@ with close_pressure as (
 historical_by_partner as (
     select
         partner_id,
-        count(*)                            as completed_close_count,
-        avg(tickets_in_window)              as avg_tickets_per_close,
-        min(tickets_in_window)              as min_tickets_observed,
-        max(tickets_in_window)              as max_tickets_observed,
-        avg(tickets_high_urgent)            as avg_high_urgent_per_close
+        count(*) as completed_close_count,
+        avg(tickets_in_window) as avg_tickets_per_close,
+        min(tickets_in_window) as min_tickets_observed,
+        max(tickets_in_window) as max_tickets_observed,
+        avg(tickets_high_urgent) as avg_high_urgent_per_close
     from close_pressure
     where close_status = 'completed'
     group by partner_id
@@ -60,19 +60,19 @@ select
     {{ date_add_days('u.scheduled_close_date', window_days) }} as pressure_window_end,
 
     -- Historical basis
-    h.completed_close_count             as historical_close_count,
-    round(h.avg_tickets_per_close, 1)   as avg_tickets_per_close,
+    h.completed_close_count as historical_close_count,
+    round(h.avg_tickets_per_close, 1) as avg_tickets_per_close,
     h.min_tickets_observed,
     h.max_tickets_observed,
     round(h.avg_high_urgent_per_close, 1) as avg_high_urgent_per_close,
 
     -- Forecast (rounded to whole tickets)
-    round(h.avg_tickets_per_close, 0)      as expected_tickets,
-    round(h.avg_high_urgent_per_close, 0)  as expected_high_urgent_tickets,
+    round(h.avg_tickets_per_close, 0) as expected_tickets,
+    round(h.avg_high_urgent_per_close, 0) as expected_high_urgent_tickets,
 
     -- Confidence flags
-    (h.partner_id is null)              as no_historical_data,
-    (h.completed_close_count < 3)       as low_sample_warning
+    (h.partner_id is null) as no_historical_data,
+    (h.completed_close_count < 3) as low_sample_warning
 from upcoming u
 left join historical_by_partner h on u.partner_id = h.partner_id
 order by u.scheduled_close_date

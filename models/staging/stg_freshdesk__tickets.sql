@@ -9,14 +9,14 @@ with source as (
 select
     ticket_id,
     -- Normalised to match against investor.email and rm_email.
-    lower(trim(requester_email))        as requester_email,
-    trim(requester_name)                as requester_name,
-    trim(subject)                       as subject,
-    lower(trim(status))                 as status,
-    lower(trim(priority))               as priority,
-    cast(created_at as timestamp)       as created_at,
-    cast(resolved_at as timestamp)      as resolved_at,
-    tags                                as tags_raw,
+    lower(trim(requester_email)) as requester_email,
+    trim(requester_name) as requester_name,
+    trim(subject) as subject,
+    lower(trim(status)) as status,
+    lower(trim(priority)) as priority,
+    cast(created_at as timestamp) as created_at,
+    cast(resolved_at as timestamp) as resolved_at,
+    tags as tags_raw,
     -- Kept as-is (only emptied-to-null) so the QA layer can judge it honestly.
-    nullif(trim(partner_label), '')     as partner_label
+    nullif(trim(partner_label), '') as partner_label
 from source

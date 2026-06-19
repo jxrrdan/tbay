@@ -19,8 +19,9 @@ exploded as (
         lower(trim(tag_raw)) as tag
     from resolved
     cross join {{ unnest_split('tags_raw', ',', 'tag_raw') }}
-    where tags_raw is not null
-      and trim(tags_raw) <> ''
+    where
+        tags_raw is not null
+        and trim(tags_raw) <> ''
 )
 
 select

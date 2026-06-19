@@ -21,10 +21,10 @@
 with resolved as (
     select * from {{ ref('int_tickets__requester_resolution') }}
     {% if is_incremental() %}
-    where cast(created_at as date) >= (
-        select {{ date_sub_days('cast(max(created_at) as date)', 3) }}
-        from {{ this }}
-    )
+        where cast(created_at as date) >= (
+            select {{ date_sub_days('cast(max(created_at) as date)', 3) }}
+            from {{ this }}
+        )
     {% endif %}
 )
 
@@ -42,7 +42,7 @@ select
     partner_attribution_method,
     requester_matched_both,
     (coalesce(investor_match_count, 0) > 1) as investor_email_is_ambiguous,
-    (coalesce(rm_match_count, 0) > 1)       as rm_email_is_ambiguous,
+    (coalesce(rm_match_count, 0) > 1) as rm_email_is_ambiguous,
 
     -- Descriptive ticket attributes
     subject,
@@ -53,15 +53,15 @@ select
     -- Timing
     created_at,
     resolved_at,
-    cast(created_at as date)              as created_date,
+    cast(created_at as date) as created_date,
     {{ week_start('created_at') }}        as created_week,
     {{ month_start('created_at') }}       as created_month,
 
     -- Measures
-    (resolved_at is not null)             as is_resolved,
-    (status in ('open', 'pending'))       as is_open,
+    (resolved_at is not null) as is_resolved,
+    (status in ('open', 'pending')) as is_open,
     case
         when resolved_at is not null
-        then {{ datediff_hours('created_at', 'resolved_at') }}
-    end                                   as resolution_hours
+            then {{ datediff_hours('created_at', 'resolved_at') }}
+    end as resolution_hours
 from resolved
