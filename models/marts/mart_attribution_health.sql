@@ -15,6 +15,15 @@ with tickets as (
     select * from {{ ref('fct_tickets') }}
 ),
 
+-- Stale upcoming closes: source-system data-entry gap where a close is still
+-- marked 'upcoming' but its scheduled date has already passed. Count is a
+-- constant across all weeks — it reflects current platform state, not history.
+stale_closes as (
+    select count(*) as stale_upcoming_close_count
+    from {{ ref('dim_fund_close') }}
+    where is_stale_upcoming
+),
+
 weekly as (
     select
         created_week as week_start,
@@ -40,26 +49,32 @@ weekly as (
 )
 
 select
-    week_start,
-    total_tickets,
+    w.week_start,
+    w.total_tickets,
 
-    investor_tickets,
-    rm_tickets,
-    internal_tickets,
-    unknown_tickets,
+    w.investor_tickets,
+    w.rm_tickets,
+    w.internal_tickets,
+    w.unknown_tickets,
 
-    attr_investor_email,
-    attr_rm_email,
-    attr_label_fallback,
-    attr_unresolved,
+    w.attr_investor_email,
+    w.attr_rm_email,
+    w.attr_label_fallback,
+    w.attr_unresolved,
 
-    ambiguous_investor_email_count,
-    ambiguous_rm_email_count,
+    w.ambiguous_investor_email_count,
+    w.ambiguous_rm_email_count,
 
     -- Rates (the KPIs to monitor)
-    round(attr_unresolved * 100.0 / nullif(total_tickets, 0), 2) as unresolved_rate_pct,
-    round(attr_label_fallback * 100.0 / nullif(total_tickets, 0), 2) as fallback_rate_pct,
-    round(unknown_tickets * 100.0 / nullif(total_tickets, 0), 2) as unknown_requester_rate_pct,
-    round(internal_tickets * 100.0 / nullif(total_tickets, 0), 2) as internal_requester_rate_pct
-from weekly
-order by week_start
+    round(w.attr_unresolved * 100.0 / nullif(w.total_tickets, 0), 2) as unresolved_rate_pct,
+    round(w.attr_label_fallback * 100.0 / nullif(w.total_tickets, 0), 2) as fallback_rate_pct,
+    round(w.unknown_tickets * 100.0 / nullif(w.total_tickets, 0), 2) as unknown_requester_rate_pct,
+    round(w.internal_tickets * 100.0 / nullif(w.total_tickets, 0), 2) as internal_requester_rate_pct,
+
+    -- Close calendar data quality: closes still marked 'upcoming' with a past
+    -- scheduled date. Should be 0. Non-zero means the source system has gaps
+    -- that corrupt mart_staffing_forecast if not filtered out.
+    s.stale_upcoming_close_count
+from weekly w
+cross join stale_closes s
+order by w.week_start

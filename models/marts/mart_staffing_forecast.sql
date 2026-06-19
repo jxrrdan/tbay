@@ -40,8 +40,13 @@ historical_by_partner as (
 ),
 
 upcoming as (
+    -- Exclude stale closes: 'upcoming' rows whose scheduled date has passed
+    -- are data-entry gaps (close happened but was never marked completed, or
+    -- was silently abandoned). Including them projects load onto dates that
+    -- have already passed, corrupting the forward-looking estimate.
+    -- See dim_fund_close.is_stale_upcoming and mart_attribution_health for counts.
     select * from {{ ref('dim_fund_close') }}
-    where close_status = 'upcoming'
+    where close_status = 'upcoming' and not is_stale_upcoming
 )
 
 select
