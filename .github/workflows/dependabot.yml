@@ -1,0 +1,50 @@
+name: Dependabot auto-label and lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Apply dependencies label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['dependencies']
+            })
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install sqlfluff sqlfluff-templater-dbt dbt-duckdb
+
+      - name: Validate project structure (no DB needed)
+        run: dbt parse
+        env:
+          DBT_PROFILES_DIR: ${{ github.workspace }}
+
+      - name: Lint SQL (dbt-templated)
+        run: |
+          sqlfluff lint models/ \
+            --dialect duckdb \
+            --templater dbt \
+            --exclude-rules ST06,ST07 \
+            --warn-unused-ignores
+        env:
+          DBT_PROFILES_DIR: ${{ github.workspace }}
