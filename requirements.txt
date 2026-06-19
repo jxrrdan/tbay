@@ -1,8 +1,8 @@
 # Install the adapter you need. Both are kept here for convenience.
 # DuckDB (local, zero-config):
-dbt-core>=1.7,<2.0
 dbt-duckdb>=1.10.1,<2.0
+dbt-core>=1.11.11,<2.0
 
 # BigQuery (uncomment to use instead):
-# dbt-core>=1.7,<2.0
+# dbt-core>=1.11.11,<2.0
 # dbt-bigquery>=1.7,<2.0
