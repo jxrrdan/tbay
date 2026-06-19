@@ -257,19 +257,36 @@ historical validation and forward planning.
 
 ## 9. How to run
 
-```bash
-pip install -r requirements.txt          # dbt-core + dbt-duckdb, nothing else
+### Local (DuckDB — zero credentials, default)
 
-# place the six raw CSVs in seeds/ (filenames matching the table names), then:
+```bash
+pip install -r requirements.txt          # dbt-core + dbt-duckdb
 export DBT_PROFILES_DIR=$(pwd)
 dbt build                                # seeds → models → tests, end to end
 ```
 
-The project has **no external package dependencies** (only built-in generic
-tests are used), so it runs with no network access beyond the pip install.
-Everything materialises into a local `titanbay_is.duckdb` file — no warehouse
-credentials needed. The SQL is standard dbt and ports to BigQuery with only the
-profile changed.
+Everything materialises into a local `titanbay_is.duckdb` file. No warehouse
+credentials or network access needed beyond the pip install.
+
+### BigQuery (production)
+
+```bash
+pip install -r requirements.txt
+pip install dbt-bigquery                 # BigQuery adapter (not in requirements.txt)
+
+# Authenticate with GCP
+gcloud auth application-default login
+
+# Update profiles.yml — set your GCP project ID:
+#   bigquery:
+#     project: your-gcp-project         ← replace this
+
+export DBT_PROFILES_DIR=$(pwd)
+dbt build --target bigquery             # ← --target bigquery is required
+```
+
+The `--target bigquery` flag is required — the default target is DuckDB.
+All SQL is cross-adapter compatible; no model changes are needed when switching.
 
 ---
 
