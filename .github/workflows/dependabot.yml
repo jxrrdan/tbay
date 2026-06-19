@@ -35,7 +35,7 @@ jobs:
         run: pip install sqlfluff sqlfluff-templater-dbt dbt-duckdb
 
       - name: Validate project structure (no DB needed)
-        run: dbt parse
+        run: dbt parse --target duckdb
         env:
           DBT_PROFILES_DIR: ${{ github.workspace }}
 
@@ -48,3 +48,4 @@ jobs:
             --warn-unused-ignores
         env:
           DBT_PROFILES_DIR: ${{ github.workspace }}
+          DBT_TARGET: duckdb
