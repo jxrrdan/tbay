@@ -34,12 +34,24 @@ jobs:
       - name: Install dependencies
         run: pip install sqlfluff sqlfluff-templater-dbt dbt-duckdb
 
+      - name: Write CI-safe profiles.yml
+        run: |
+          cat > /tmp/ci_profiles.yml << 'EOF'
+          titanbay_is:
+            target: dev
+            outputs:
+              dev:
+                type: duckdb
+                path: /tmp/ci.duckdb
+                threads: 4
+          EOF
+
       - name: Validate project structure (no DB needed)
         run: dbt parse
         env:
-          DBT_PROFILES_DIR: ${{ github.workspace }}
+          DBT_PROFILES_DIR: /tmp
 
       - name: Lint SQL (dbt-templated)
         run: sqlfluff lint models/
         env:
-          DBT_PROFILES_DIR: ${{ github.workspace }}
+          DBT_PROFILES_DIR: /tmp
