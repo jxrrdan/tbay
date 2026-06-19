@@ -7,4 +7,4 @@ exclude_rules = ST06, ST07, AL01
 [sqlfluff:templater:dbt]
 project_dir = .
 profiles_dir = .
-target = duckdb
+target = dev
