@@ -34,6 +34,11 @@ jobs:
       - name: Install dependencies
         run: pip install sqlfluff sqlfluff-templater-dbt dbt-duckdb
 
+      - name: Validate project structure (no DB needed)
+        run: dbt parse
+        env:
+          DBT_PROFILES_DIR: ${{ github.workspace }}
+
       - name: Lint SQL (dbt-templated)
         run: |
           sqlfluff lint models/ \
