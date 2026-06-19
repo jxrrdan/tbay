@@ -38,15 +38,16 @@ select
     c.close_status,
     c.total_committed_aum_gbp,
 
-    count(t.ticket_id)                                                   as tickets_in_window,
-    count(t.ticket_id) filter (where t.created_date <  c.scheduled_close_date) as tickets_before_close,
+    count(t.ticket_id) as tickets_in_window,
+    count(t.ticket_id) filter (where t.created_date < c.scheduled_close_date) as tickets_before_close,
     count(t.ticket_id) filter (where t.created_date >= c.scheduled_close_date) as tickets_on_or_after_close,
-    count(t.ticket_id) filter (where t.priority in ('high', 'urgent'))   as tickets_high_urgent
+    count(t.ticket_id) filter (where t.priority in ('high', 'urgent')) as tickets_high_urgent
 from closes c
 left join partner_tickets t
-    on t.partner_id = c.partner_id
-   and t.created_date between c.scheduled_close_date - interval '{{ window_days }}' day
-                         and c.scheduled_close_date + interval '{{ window_days }}' day
+    on
+        c.partner_id = t.partner_id
+        and t.created_date between {{ date_sub_days('c.scheduled_close_date', window_days) }}
+        and {{ date_add_days('c.scheduled_close_date', window_days) }}
 group by
     c.close_id, c.fund_id, c.fund_name, c.close_number, c.partner_id,
     c.partner_name, c.scheduled_close_date, c.close_status, c.total_committed_aum_gbp

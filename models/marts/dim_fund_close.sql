@@ -22,8 +22,8 @@ select
     partners.partner_type,
 
     -- Calendar helpers (Monday-anchored week to match the pressure mart)
-    date_trunc('week',  closes.scheduled_close_date)  as close_week,
-    date_trunc('month', closes.scheduled_close_date)  as close_month,
-    (closes.close_status = 'upcoming')                as is_upcoming
+    {{ week_start('closes.scheduled_close_date') }}   as close_week,
+    {{ month_start('closes.scheduled_close_date') }}  as close_month,
+    (closes.close_status = 'upcoming') as is_upcoming
 from closes
 left join partners on closes.partner_id = partners.partner_id

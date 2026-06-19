@@ -1,21 +1,21 @@
 -- ============================================================================
 -- Requester resolution — the analytical heart of the model.
 --
--- A Freshdesk ticket's requester can be one of THREE types of person:
---   1. an investor      (requester_email matches a platform_investors.email)
---   2. an RM            (requester_email matches a relationship_manager.email)
---   3. unknown          (email matches neither — e.g. an ex-user, a typo, or
---                        an internal/forwarded address)
+-- A Freshdesk ticket's requester can be one of FOUR types of person:
+--   1. investor      — requester_email matches a platform_investors.email
+--   2. rm            — requester_email matches a relationship_manager.email
+--   3. internal      — requester_email is a @titanbay.com / @titanbay.co.uk
+--                      address (IS team, ops staff, internal testing)
+--   4. unknown       — email matches nothing (consumer/personal addresses, ex-
+--                      users, or typos — 80 tickets in the current data)
 --
--- Two grain hazards are handled explicitly here:
---   * One email may map to MORE THAN ONE investor (duplicate registrations).
---     We collapse to a single investor per email with a deterministic rule
---     (earliest-registered wins) and keep a *_match_count so the ambiguity is
---     visible rather than silently fanning out the ticket grain.
---   * An email may match BOTH an investor and an RM. We apply investor-first
---     precedence and flag `requester_matched_both` for audit. (Investor-first
---     keeps the "which investors raise the most tickets" question answerable;
---     the flag lets an analyst trivially flip the rule.)
+-- Grain safety: emails are deduplicated to one row per address before joining,
+-- so even if future data introduces duplicate investor registrations the ticket
+-- grain can never fan out. A `_match_count` column surfaces any such collapse.
+--
+-- Partner attribution trust order:
+--   investor email  →  RM email  →  label synonym lookup  →  null
+-- `partner_attribution_method` records which rung was used.
 --
 -- Output grain: exactly one row per ticket.
 -- ============================================================================
@@ -31,16 +31,22 @@ rms as (
     select * from {{ ref('int_relationship_managers__enriched') }}
 ),
 
-partners as (
-    select * from {{ ref('stg_platform__partners') }}
+-- Synonym seed: maps every observed partner_label variant → partner_id.
+-- Uses keyword matching at seed-generation time; covers all 80 observed
+-- label variants across 15 partners. Covers the IS team's inconsistent
+-- free-text entry without any fuzzy-match runtime overhead.
+label_synonyms as (
+    select * from {{ ref('partner_label_synonyms') }}
 ),
 
--- One investor per email. Deterministic: earliest registration, then id.
+-- One investor per email — deterministic: earliest registration, then id.
+-- In the current data all 1 253 emails are unique, so this CTE collapses
+-- nothing. It is here to protect the grain if duplicate registrations appear.
 investor_by_email as (
     select
         email,
         investor_id,
-        partner_id              as investor_partner_id,
+        partner_id as investor_partner_id,
         count(*) over (partition by email) as investor_match_count
     from investors
     where email is not null
@@ -54,7 +60,7 @@ rm_by_email as (
     select
         rm_email,
         rm_id,
-        partner_id              as rm_partner_id,
+        partner_id as rm_partner_id,
         count(*) over (partition by rm_email) as rm_match_count
     from rms
     where rm_email is not null
@@ -63,17 +69,18 @@ rm_by_email as (
     ) = 1
 ),
 
--- Last-resort partner attribution from the manual free-text label, matched on
--- an exact normalised partner name. Deliberately conservative: the label is
--- unreliable (~44% null, inconsistent), so we only trust an exact name hit and
--- never let it override an email-based match.
-partner_by_label as (
+-- Normalised label lookup. The synonym seed stores one row per raw label
+-- string, so UPPER/lower/mixed variants of the same label produce multiple
+-- rows with the same label_norm after normalisation. We collapse to one row
+-- per label_norm (all collisions map to the same partner_id, so this is safe
+-- and deterministic) to prevent the join from fanning out the ticket grain.
+label_lookup as (
     select
-        lower(trim(partner_name)) as partner_label_norm,
-        partner_id                as label_partner_id
-    from partners
+        lower(trim(label_raw)) as label_norm,
+        partner_id as label_partner_id
+    from label_synonyms
     qualify row_number() over (
-        partition by lower(trim(partner_name)) order by partner_id
+        partition by lower(trim(label_raw)) order by label_raw
     ) = 1
 ),
 
@@ -96,38 +103,44 @@ resolved as (
         rm.rm_id,
         rm.rm_partner_id,
         rm.rm_match_count,
-        pl.label_partner_id,
+        ll.label_partner_id,
 
-        (iv.investor_id is not null)                       as matched_investor,
-        (rm.rm_id is not null)                             as matched_rm,
+        (iv.investor_id is not null) as matched_investor,
+        (rm.rm_id is not null) as matched_rm,
+        -- No overlap in current data, but flag defensively
         (iv.investor_id is not null and rm.rm_id is not null) as requester_matched_both,
+
+        -- Internal Titanbay staff are their own class, not 'unknown'
+        t.requester_email like '%@titanbay.com' as is_titanbay_com,
+        t.requester_email like '%@titanbay.co.uk' as is_titanbay_co_uk,
 
         case
             when iv.investor_id is not null then 'investor'
-            when rm.rm_id is not null       then 'relationship_manager'
+            when rm.rm_id is not null then 'relationship_manager'
+            when t.requester_email like '%@titanbay.%' then 'internal'
             else 'unknown'
         end as requester_type
     from tickets t
     left join investor_by_email iv on t.requester_email = iv.email
-    left join rm_by_email       rm on t.requester_email = rm.rm_email
-    left join partner_by_label  pl on lower(trim(t.partner_label)) = pl.partner_label_norm
+    left join rm_by_email rm on t.requester_email = rm.rm_email
+    left join label_lookup ll on lower(trim(t.partner_label)) = ll.label_norm
 )
 
 select
     *,
 
-    -- Authoritative partner for the ticket, in trust order:
-    --   investor email  ->  RM email  ->  exact partner-label name match.
+    -- Authoritative partner, in trust order.
+    -- Internal and unknown tickets can still be attributed via the label.
     coalesce(
-        case when requester_type = 'investor'             then investor_partner_id end,
-        case when requester_type = 'relationship_manager' then rm_partner_id        end,
+        case when requester_type = 'investor' then investor_partner_id end,
+        case when requester_type = 'relationship_manager' then rm_partner_id end,
         label_partner_id
     ) as partner_id,
 
     case
-        when requester_type = 'investor'             then 'investor_email_match'
+        when requester_type = 'investor' then 'investor_email_match'
         when requester_type = 'relationship_manager' then 'rm_email_match'
-        when label_partner_id is not null            then 'partner_label_fallback'
+        when label_partner_id is not null then 'partner_label_fallback'
         else 'unresolved'
     end as partner_attribution_method
 from resolved

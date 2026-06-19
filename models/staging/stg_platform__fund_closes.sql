@@ -8,10 +8,10 @@ with source as (
 select
     close_id,
     fund_id,
-    trim(fund_name)                     as fund_name,
+    trim(fund_name) as fund_name,
     partner_id,
-    cast(close_number as integer)       as close_number,
-    cast(scheduled_close_date as date)  as scheduled_close_date,
-    lower(trim(close_status))           as close_status,
-    cast(total_committed_aum as bigint) as total_committed_aum_gbp
+    cast(close_number as integer) as close_number,
+    cast(scheduled_close_date as date) as scheduled_close_date,
+    lower(trim(close_status)) as close_status,
+    {{ cast_int64('total_committed_aum') }} as total_committed_aum_gbp
 from source

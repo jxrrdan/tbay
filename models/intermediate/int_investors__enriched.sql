@@ -45,4 +45,4 @@ select
 from investors
 left join entities on investors.entity_id = entities.entity_id
 left join partners on entities.partner_id = partners.partner_id
-left join rms     on investors.relationship_manager_id = rms.rm_id
+left join rms on investors.relationship_manager_id = rms.rm_id
