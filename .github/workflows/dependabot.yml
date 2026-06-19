@@ -36,7 +36,7 @@ jobs:
 
       - name: Write CI-safe profiles.yml
         run: |
-          cat > /tmp/ci_profiles.yml << 'EOF'
+          cat > /tmp/profiles.yml << 'EOF'
           titanbay_is:
             target: dev
             outputs:
