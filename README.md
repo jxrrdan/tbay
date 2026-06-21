@@ -107,7 +107,7 @@ tickets."* It does — after profiling, a `requester_email` can belong to:
 1. **investor** — matches `platform_investors.email` (1,060 tickets, 53%)
 2. **relationship_manager** — matches `platform_relationship_managers.email`
    (760 tickets, 38%)
-3. **internal** — `@titanbay.com` or `@titanbay.co.uk` address (100 tickets, 5%).
+3. **internal** — `@titanbay.com` or `@titanbay.co.uk` address (47 + 53 = 100 tickets, 5%).
    The requester_name for these is often a different person's name, suggesting IS
    team members are raising tickets on behalf of investors rather than for
    themselves. No partner attribution is possible from email alone.
@@ -190,9 +190,10 @@ support load) clusters around closes. Two complementary models:
 | `partner_label` ~44% null and 80 distinct variants of 15 partner names | Generated a keyword-based synonym seed mapping all 80 variants to canonical `partner_id`. Used as last-resort fallback only; partner_attribution_method records when it was used. |
 | `relationship_manager_id` ~41% null | Treated as a real signal — the investor self-manages — surfaced as `is_rm_managed`, not an error. |
 | `resolved_at` ~42% null | Genuine open/unresolved tickets; `is_resolved` flag + `resolution_hours` only computed when resolved. |
-| 100 tickets from `@titanbay.com`/`@titanbay.co.uk` with mismatched requester names | Classified as `internal` (IS team raising tickets on behalf of investors). No partner attribution currently possible; noted as a gap. |
+| 47 tickets from `@titanbay.com` and 53 from `@titanbay.co.uk` (100 total) with mismatched requester names | Classified as `internal` (IS team raising tickets on behalf of investors). No partner attribution currently possible; noted as a gap. |
 | 80 tickets from personal/consumer emails (gmail, outlook, etc.) | Classified as `unknown` with explicit flag. Not silently dropped. |
 | Email casing / whitespace differences across systems | Normalised to `lower(trim())` in staging for all join keys. |
+| 21 of 43 `upcoming` fund closes have a `scheduled_close_date` in the past | Flagged as `is_stale_upcoming` in `dim_fund_close`. Excluded from `mart_staffing_forecast` to prevent projecting load onto dates that have already passed. Count surfaced in `mart_attribution_health.stale_upcoming_close_count`. |
 | **Fund close ordering anomaly**: 7 funds where `close_number` doesn't match chronological order of `scheduled_close_date` (e.g. Stirling Private Equity Fund 2023 has close 1 dated 2026-11-02 but close 2 dated 2026-03-23). | We trust `scheduled_close_date` as the authoritative date for calendar analysis; `close_number` is likely a data-entry error. `dim_fund_close` exposes both. A source-level fix is needed (see §11). |
 | Inconsistent category values (status/priority/type/KYC) | `accepted_values` tests (severity `warn`) surface drift without blocking the build. All current values are in range. |
 | Orphaned foreign keys | `relationships` tests (severity `warn`) quantify any orphans. All currently clean. |
@@ -200,7 +201,7 @@ support load) clusters around closes. Two complementary models:
 > Tests are split by intent: **primary-key integrity** (`unique`, `not_null`)
 > runs as `error`; **discovery tests** (`accepted_values`, `relationships`) run as
 > `warn`, so the build completes and the warnings *document* the data's real state
-> rather than halting the pipeline. All 80 tests pass on the current data.
+> rather than halting the pipeline. All 58 data tests pass on the current data.
 
 ---
 
@@ -374,21 +375,35 @@ and documented decisions above are the deliberate choices I made throughout.
 
 ---
 
-## 13. Reflection — the ideal long-term fix
+## 13. Reflection — the ideal long-term fixes
 
 The root problem is that **Freshdesk has no reliable foreign key back to the
 platform** — tickets are stitched by email and patched with a manual,
-inconsistently-entered `partner_label`. Two durable fixes:
+inconsistently-entered `partner_label`. Three durable fixes, each with a
+distinct owner:
 
-1. **Stamp platform identity onto every ticket at creation time.** When the
-   Titanbay platform opens a Freshdesk ticket (or a user does so through a
-   platform-integrated flow), pass the authenticated `investor_id`,
-   `relationship_manager_id`, and `partner_id` as Freshdesk custom fields. This
-   retires the entire resolution layer and makes the attribution 100% reliable.
+1. **Self-directed investors: stamp `investor_id` at ticket creation (Platform
+   team).** When an authenticated investor opens a Freshdesk ticket through the
+   platform, the platform should pass their `investor_id` as a Freshdesk custom
+   field. This retires the email-matching layer entirely for the 53% of tickets
+   raised directly by investors and makes their attribution 100% reliable with no
+   ongoing maintenance.
 
-2. **Fix the `close_number`/`scheduled_close_date` ordering inconsistency at the
-   source** — either enforce a constraint that close dates must be monotonically
+2. **RM-raised tickets: raise tickets in the investor's context (Process / Product
+   change).** RMs currently raise tickets from their own email, so the ticket is
+   attributed to the RM rather than their client. The fix is a product or process
+   change so that when an RM raises a ticket on behalf of an investor, the
+   investor's `investor_id` is passed as the ticket's context. This is the
+   **only** way to break the current 38% partner-level attribution ceiling — the
+   RM's email will never resolve to an investor — and it requires a different
+   owner and a different solution from fix 1. Until this is addressed, RM-raised
+   tickets can only be attributed at the partner level, not the investor level.
+
+3. **Fix the `close_number`/`scheduled_close_date` ordering inconsistency at the
+   source.** Either enforce a constraint that close dates must be monotonically
    increasing with close number, or treat `close_number` as a label rather than
    an ordering key and rely on `scheduled_close_date` for all date logic. Seven
-   funds currently have mismatched orderings, which will silently produce wrong
-   results in any downstream model that assumes the two columns agree.
+   funds currently have mismatched orderings. Additionally, the 21 stale
+   `upcoming` closes (past their `scheduled_close_date` without being marked
+   `completed`) should be resolved in the source system — the current workaround
+   excludes them from the forecast but the underlying gap remains.
