@@ -39,7 +39,7 @@ spine as (
         partner_id,
         week_start
     from tickets
-    union
+    union distinct
     select
         partner_id,
         week_start

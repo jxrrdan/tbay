@@ -37,9 +37,9 @@ closes as (
 
 week_spine as (
     select week_start from tickets_created
-    union
+    union distinct
     select week_start from tickets_resolved
-    union
+    union distinct
     select week_start from closes
 )
 
