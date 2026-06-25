@@ -24,17 +24,6 @@ seeds:
   titanbay_is:
     +schema: raw
     +quote_columns: false
-    partner_label_synonyms:
-      +column_types:
-        label_raw: varchar
-        partner_id: varchar
-        partner_name: varchar
-    tag_themes:
-      +column_types:
-        tag: varchar
-        theme: varchar
-        theme_label: varchar
-        theme_sort_order: integer
 
 models:
   titanbay_is:
