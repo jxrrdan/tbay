@@ -39,9 +39,9 @@ select
     c.total_committed_aum_gbp,
 
     count(t.ticket_id) as tickets_in_window,
-    count(t.ticket_id) filter (where t.created_date < c.scheduled_close_date) as tickets_before_close,
-    count(t.ticket_id) filter (where t.created_date >= c.scheduled_close_date) as tickets_on_or_after_close,
-    count(t.ticket_id) filter (where t.priority in ('high', 'urgent')) as tickets_high_urgent
+    {{ count_if('t.created_date < c.scheduled_close_date') }} as tickets_before_close,
+    {{ count_if('t.created_date >= c.scheduled_close_date') }} as tickets_on_or_after_close,
+    {{ count_if("t.priority in ('high', 'urgent')") }} as tickets_high_urgent
 from closes c
 left join partner_tickets t
     on

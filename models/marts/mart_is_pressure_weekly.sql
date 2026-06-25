@@ -10,7 +10,7 @@ with tickets_created as (
     select
         created_week as week_start,
         count(*) as tickets_created,
-        count(*) filter (where priority in ('high', 'urgent')) as tickets_high_urgent
+        {{ count_if("priority in ('high', 'urgent')") }} as tickets_high_urgent
     from {{ ref('fct_tickets') }}
     group by created_week
 ),
@@ -28,8 +28,8 @@ closes as (
     select
         close_week as week_start,
         count(*) as closes_scheduled,
-        count(*) filter (where close_status = 'completed') as closes_completed,
-        count(*) filter (where close_status = 'upcoming') as closes_upcoming,
+        {{ count_if("close_status = 'completed'") }} as closes_completed,
+        {{ count_if("close_status = 'upcoming'") }} as closes_upcoming,
         sum(total_committed_aum_gbp) as committed_aum_closing_gbp
     from {{ ref('dim_fund_close') }}
     group by close_week

@@ -147,3 +147,20 @@
 {% macro bigquery__unnest_split(col, delim, alias) %}
   unnest(split({{ col }}, '{{ delim }}')) as {{ alias }}
 {% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+   count_if — conditional count, equivalent to count(*) filter (where cond).
+   DuckDB supports FILTER; BigQuery uses COUNTIF().
+   --------------------------------------------------------------------------- #}
+{% macro count_if(condition) %}
+  {{ return(adapter.dispatch('count_if', 'titanbay_is')(condition)) }}
+{% endmacro %}
+
+{% macro default__count_if(condition) %}
+  count(*) filter (where {{ condition }})
+{% endmacro %}
+
+{% macro bigquery__count_if(condition) %}
+  countif({{ condition }})
+{% endmacro %}

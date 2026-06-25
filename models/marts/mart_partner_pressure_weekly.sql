@@ -10,9 +10,9 @@ with tickets as (
         partner_id,
         created_week as week_start,
         count(*) as tickets_created,
-        count(*) filter (where priority in ('high', 'urgent')) as tickets_high_urgent,
-        count(*) filter (where requester_type = 'investor') as investor_tickets,
-        count(*) filter (where requester_type = 'relationship_manager') as rm_tickets
+        {{ count_if("priority in ('high', 'urgent')") }} as tickets_high_urgent,
+        {{ count_if("requester_type = 'investor'") }} as investor_tickets,
+        {{ count_if("requester_type = 'relationship_manager'") }} as rm_tickets
     from {{ ref('fct_tickets') }}
     where partner_id is not null
     group by partner_id, created_week
@@ -23,8 +23,8 @@ closes as (
         partner_id,
         close_week as week_start,
         count(*) as closes_scheduled,
-        count(*) filter (where close_status = 'completed') as closes_completed,
-        count(*) filter (where close_status = 'upcoming') as closes_upcoming,
+        {{ count_if("close_status = 'completed'") }} as closes_completed,
+        {{ count_if("close_status = 'upcoming'") }} as closes_upcoming,
         sum(total_committed_aum_gbp) as committed_aum_gbp
     from {{ ref('dim_fund_close') }}
     group by partner_id, close_week

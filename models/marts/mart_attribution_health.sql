@@ -30,20 +30,20 @@ weekly as (
         count(*) as total_tickets,
 
         -- Requester type breakdown
-        count(*) filter (where requester_type = 'investor') as investor_tickets,
-        count(*) filter (where requester_type = 'relationship_manager') as rm_tickets,
-        count(*) filter (where requester_type = 'internal') as internal_tickets,
-        count(*) filter (where requester_type = 'unknown') as unknown_tickets,
+        {{ count_if("requester_type = 'investor'") }} as investor_tickets,
+        {{ count_if("requester_type = 'relationship_manager'") }} as rm_tickets,
+        {{ count_if("requester_type = 'internal'") }} as internal_tickets,
+        {{ count_if("requester_type = 'unknown'") }} as unknown_tickets,
 
         -- Partner attribution method breakdown
-        count(*) filter (where partner_attribution_method = 'investor_email_match') as attr_investor_email,
-        count(*) filter (where partner_attribution_method = 'rm_email_match') as attr_rm_email,
-        count(*) filter (where partner_attribution_method = 'partner_label_fallback') as attr_label_fallback,
-        count(*) filter (where partner_attribution_method = 'unresolved') as attr_unresolved,
+        {{ count_if("partner_attribution_method = 'investor_email_match'") }} as attr_investor_email,
+        {{ count_if("partner_attribution_method = 'rm_email_match'") }} as attr_rm_email,
+        {{ count_if("partner_attribution_method = 'partner_label_fallback'") }} as attr_label_fallback,
+        {{ count_if("partner_attribution_method = 'unresolved'") }} as attr_unresolved,
 
         -- Ambiguity flags
-        count(*) filter (where investor_email_is_ambiguous) as ambiguous_investor_email_count,
-        count(*) filter (where rm_email_is_ambiguous) as ambiguous_rm_email_count
+        {{ count_if('investor_email_is_ambiguous') }} as ambiguous_investor_email_count,
+        {{ count_if('rm_email_is_ambiguous') }} as ambiguous_rm_email_count
     from tickets
     group by created_week
 )
